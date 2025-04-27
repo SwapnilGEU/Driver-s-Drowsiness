@@ -1,28 +1,65 @@
+import time
+import cv2
+from ultralytics import YOLO
 import streamlit as st
-import numpy as np
-from PIL import Image
-from ultralytics import YOLO  
+from streamlit_webrtc import webrtc_streamer, VideoTransformerBase
+import threading
+from playsound import playsound
 
+# Load your YOLO model
+model = YOLO("y_new2.pt")
 
-model = YOLO('y_new2.pt')
+# For sound alert
+def play_alert():
+    playsound("mixkit-rooster-crowing-in-the-morning-2462.wav")
 
-# Streamlit UI
-st.title("YOLO Object Detection App")
+# UI
+st.title("Drowsiness Detection with YOLOv8 + Streamlit")
+st.markdown("Detecting 'Closed Eye' with sound alert if detected for 3 seconds")
 
-uploaded_file = st.file_uploader("Choose an image...", type=["jpg", "jpeg", "png"])
+# Main video transformer
+class DrowsinessTransformer(VideoTransformerBase):
+    def __init__(self):
+        self.drowsy_detected_time = None
+        self.alert_played = False
+        self.alert_threshold = 3  # seconds
 
-if uploaded_file is not None:
-    # Read image
-    image = Image.open(uploaded_file)
-    img = np.array(image)
+        self.frame_count = 0
+        self.fps = 0
+        self.start_time = time.time()
 
-    # Prediction
-    results = model.predict(img)
+    def transform(self, frame):
+        img = frame.to_ndarray(format="bgr24")
+        self.frame_count += 1
 
-    # Get results image
-    result_img = results[0].plot()
+        results = model(img)[0]
+        class_names = [model.names[int(cls)] for cls in results.boxes.cls]
 
-    # Show result
-    st.image(result_img, caption='Detected Image', use_column_width=True)
+        # FPS calculation
+        elapsed_time = time.time() - self.start_time
+        if elapsed_time > 1:
+            self.fps = self.frame_count / elapsed_time
+            self.frame_count = 0
+            self.start_time = time.time()
 
+        # Drowsiness logic
+        if class_names.count('Closed Eye') >= 2:
+            if self.drowsy_detected_time is None:
+                self.drowsy_detected_time = time.time()
+            else:
+                elapsed = time.time() - self.drowsy_detected_time
+                if elapsed >= self.alert_threshold and not self.alert_played:
+                    threading.Thread(target=play_alert).start()
+                    self.alert_played = True
+        else:
+            self.drowsy_detected_time = None
+            self.alert_played = False
 
+        annotated_frame = results.plot()
+        cv2.putText(annotated_frame, f"FPS: {self.fps:.2f}", (10, 30),
+                    cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+
+        return annotated_frame
+
+# Stream video
+webrtc_streamer(key="drowsiness", video_processor_factory=DrowsinessTransformer)
