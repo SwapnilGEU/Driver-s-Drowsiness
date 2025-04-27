@@ -1,7 +1,7 @@
 ultralytics==8.0.211
 torch>=2.0.0
 torchvision>=0.15.0
-opencv-python>=4.7.0.72
+opencv-python>=4.8.0
 numpy>=1.23.0
 matplotlib>=3.7.0
 scipy>=1.10.0
