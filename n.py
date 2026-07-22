@@ -4,14 +4,14 @@ from ultralytics import YOLO
 import streamlit as st
 from streamlit_webrtc import webrtc_streamer, VideoTransformerBase
 import threading
-from playsound import playsound
+import winsound
 
 # Load your YOLO model
 model = YOLO("y_new2.pt")
 
 # For sound alert
 def play_alert():
-    playsound("mixkit-rooster-crowing-in-the-morning-2462.wav")
+    winsound.PlaySound("mixkit-rooster-crowing-in-the-morning-2462.wav", winsound.SND_FILENAME)
 
 # UI
 st.title("Drowsiness Detection with YOLOv8 + Streamlit")
