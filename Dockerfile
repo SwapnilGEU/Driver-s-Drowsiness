@@ -1,8 +1,8 @@
 FROM python:3.11-slim
 
-WORKDIR /n
+WORKDIR /app
 
-COPY . /n
+COPY . /app
 
 RUN pip install --no-cache-dir --upgrade pip
 
